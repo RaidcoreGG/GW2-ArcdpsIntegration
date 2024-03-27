@@ -3,7 +3,7 @@
 #include <string>
 #include <mutex>
 
-#include "Nexus.h"
+#include "nexus/Nexus.h"
 #include "ArcDPS.h"
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
@@ -36,9 +36,9 @@ void AddonUnload();
 AddonDefinition AddonDef = {};
 AddonAPI* APIDefs = nullptr;
 
-arcdps_exports arc_exports;
+arcdps_exports arc_exports = {};
 uint32_t cbtcount = 0;
-extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, ImGuiContext* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion);
+extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, void* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion);
 extern "C" __declspec(dllexport) void* get_release_addr();
 arcdps_exports* mod_init();
 uintptr_t mod_release();
@@ -74,7 +74,7 @@ void AddonUnload()
 	return;
 }
 
-extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, ImGuiContext* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion)
+extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, void* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion)
 {
 	return mod_init;
 }
@@ -86,9 +86,8 @@ extern "C" __declspec(dllexport) void* get_release_addr()
 
 arcdps_exports* mod_init()
 {
-	memset(&arc_exports, 0, sizeof(arcdps_exports));
 	arc_exports.sig = -19392669;
-	arc_exports.imguivers = IMGUI_VERSION_NUM;
+	arc_exports.imguivers = 18000;
 	arc_exports.size = sizeof(arcdps_exports);
 	arc_exports.out_name = "Nexus ArcDPS Bridge";
 	arc_exports.out_build = __DATE__ " " __TIME__;
