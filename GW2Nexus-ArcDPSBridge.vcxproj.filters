@@ -13,10 +13,19 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="unofficial_extras">
+      <UniqueIdentifier>{3ffae431-27b1-4979-98cc-64d6122af344}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\entry.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\unofficial_extras\KeyBindHelper.cpp">
+      <Filter>unofficial_extras</Filter>
+    </ClCompile>
+    <ClCompile Include="src\unofficial_extras\KeyBindsTranslation.cpp">
+      <Filter>unofficial_extras</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -25,6 +34,18 @@
     </ClInclude>
     <ClInclude Include="src\nexus\Nexus.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\unofficial_extras\KeyBindStructs.h">
+      <Filter>unofficial_extras</Filter>
+    </ClInclude>
+    <ClInclude Include="src\unofficial_extras\KeyBindsTranslation.h">
+      <Filter>unofficial_extras</Filter>
+    </ClInclude>
+    <ClInclude Include="src\unofficial_extras\KeyBindHelper.h">
+      <Filter>unofficial_extras</Filter>
+    </ClInclude>
+    <ClInclude Include="src\unofficial_extras\Definitions.h">
+      <Filter>unofficial_extras</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -5,6 +5,7 @@
 
 #include "nexus/Nexus.h"
 #include "ArcDPS.h"
+#include "unofficial_extras/Definitions.h"
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -137,4 +138,49 @@ uintptr_t mod_combat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* 
 	}
 
 	return 0;
+}
+
+struct SquadUpdate_t
+{
+	UserInfo* UserInfo;
+	uint64_t UsersCount;
+};
+
+void SquadUpdate(const UserInfo* pUpdatedUsers, uint64_t pUpdatedUsersCount)
+{
+	SquadUpdate_t sqUpdate{
+		const_cast<UserInfo*>(pUpdatedUsers),
+		pUpdatedUsersCount
+	};
+
+	APIDefs->RaiseEvent("EV_UNOFFICIAL_EXTRAS_SQUAD_UPDATE", (void*)&sqUpdate);
+}
+
+void LanguageChanged(Language pNewLanguage)
+{
+	APIDefs->RaiseEvent("EV_UNOFFICIAL_EXTRAS_LANGUAGE_CHANGED", (void*)&pNewLanguage);
+}
+
+void KeyBindChanged(KeyBinds::KeyBindChanged pChangedKeyBind)
+{
+	APIDefs->RaiseEvent("EV_UNOFFICIAL_EXTRAS_KEYBIND_CHANGED", (void*)&pChangedKeyBind);
+}
+
+void ChatMessage(const ChatMessageInfo* pChatMessage)
+{
+	APIDefs->RaiseEvent("EV_UNOFFICIAL_EXTRAS_CHAT_MESSAGE", (void*)pChatMessage);
+}
+
+extern "C" __declspec(dllexport) void arcdps_unofficial_extras_subscriber_init(const ExtrasAddonInfo* pExtrasInfo, void* pSubscriberInfo) {
+	// MaxInfoVersion has to be higher to have enough space to hold this object
+	if (pExtrasInfo->ApiVersion == 2 && pExtrasInfo->MaxInfoVersion >= 2)
+	{
+		const auto subscriber_info = static_cast<ExtrasSubscriberInfoV2*>(pSubscriberInfo);
+		subscriber_info->InfoVersion = 2;
+		subscriber_info->SubscriberName = "Nexus ArcDPS Bridge";
+		subscriber_info->SquadUpdateCallback = SquadUpdate;
+		subscriber_info->LanguageChangedCallback = LanguageChanged;
+		subscriber_info->KeyBindChangedCallback = KeyBindChanged;
+		subscriber_info->ChatMessageCallback = ChatMessage;
+	}
 }
