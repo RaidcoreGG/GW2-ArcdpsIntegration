@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include <mutex>
+#include <thread>
+#include <format>
 
 #include "nexus/Nexus.h"
 #include "ArcDPS.h"
@@ -30,12 +32,30 @@ struct EvCombatData
 	uint64_t revision;
 };
 
+struct EvAgentUpdateData		// when ev is null
+{
+	char account[64] = "";		// dst->name	= account name
+	char character[64] = "";	// src->name	= character name
+	uintptr_t id;				// src->id		= agent id
+	uintptr_t instanceId;		// dst->id		= instance id (per map)
+	uint32_t added;				// src->prof	= is new agent
+	uint32_t target;			// src->elite	= is new targeted agent
+	uint32_t self;				// dst->self	= is self
+	uint32_t prof;				// dst->prof	= profession / core spec
+	uint32_t elite;				// dst->elite	= elite spec
+	uint16_t team;				// src->team	= team
+	uint16_t subgroup;			// dst->team	= subgroup
+};
+
 /* proto / globals */
 void AddonLoad(AddonAPI* aApi);
 void AddonUnload();
 
 AddonDefinition AddonDef = {};
 AddonAPI* APIDefs = nullptr;
+
+std::mutex Mutex;
+EvAgentUpdateData evSelfAgentData;
 
 arcdps_exports arc_exports = {};
 uint32_t cbtcount = 0;
@@ -65,13 +85,23 @@ extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef()
 	return &AddonDef;
 }
 
+void SelfRequestHandler(void* eventArgs) {
+	std::scoped_lock lck(Mutex);
+	if (evSelfAgentData.id == NULL) return;
+	std::thread([&]() {
+		APIDefs->RaiseEvent("EV_ARCDPS_SELF_UPDATE", (void*)&evSelfAgentData);
+	}).detach();
+}
+
 void AddonLoad(AddonAPI* aApi)
 {
 	APIDefs = aApi;
+	APIDefs->SubscribeEvent("EV_ARCDPS_SELF_REQUEST", SelfRequestHandler);
 }
 
 void AddonUnload()
 {
+	APIDefs->UnsubscribeEvent("EV_ARCDPS_SELF_UPDATE", SelfRequestHandler);
 	return;
 }
 
@@ -115,6 +145,7 @@ uintptr_t mod_combat_local(cbtevent* ev, ag* src, ag* dst, char* skillname, uint
 
 uintptr_t mod_combat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
 {
+	if (APIDefs == nullptr) return 0;
 	EvCombatData evCbtData
 	{
 		ev,
@@ -125,18 +156,60 @@ uintptr_t mod_combat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* 
 		revision
 	};
 
-	if (APIDefs != nullptr)
+	if (strcmp(channel, "squad") == 0)
 	{
-		if (strcmp(channel, "local") == 0)
-		{
-			APIDefs->RaiseEvent("EV_ARCDPS_COMBATEVENT_LOCAL_RAW", &evCbtData);
-		}
-		else
-		{
-			APIDefs->RaiseEvent("EV_ARCDPS_COMBATEVENT_SQUAD_RAW", &evCbtData);
-		}
+		APIDefs->RaiseEvent("EV_ARCDPS_COMBATEVENT_SQUAD_RAW", &evCbtData);
+	}
+	else
+	{
+		APIDefs->RaiseEvent("EV_ARCDPS_COMBATEVENT_LOCAL_RAW", &evCbtData);
 	}
 
+	if (evCbtData.ev) return 0;
+	EvAgentUpdateData evAgentUpdateData {
+			"",
+			"",
+			evCbtData.src->id,    
+			evCbtData.dst->id,    
+			evCbtData.src->prof,  
+			evCbtData.src->elite, 
+			evCbtData.dst->self,  
+			evCbtData.dst->prof,  
+			evCbtData.dst->elite, 
+			evCbtData.src->team,  
+			evCbtData.dst->team   
+	};
+	strcpy_s(evAgentUpdateData.account, evCbtData.dst->name);
+	strcpy_s(evAgentUpdateData.character, evCbtData.src->name);
+
+	/*APIDefs->Log(ELogLevel_DEBUG, "Nexus Arcdps Bridge", std::format(
+		"new agent event via {} channel. id: {}, instanceId: {}, account: {}, added: {}, target: {}, self: {}, prof: {}, elite: {}, team: {}, subgroup: {}",
+		channel, evAgentUpdateData.id, evAgentUpdateData.instanceId, evAgentUpdateData.account, evAgentUpdateData.added, evAgentUpdateData.target,
+		evAgentUpdateData.self, evAgentUpdateData.prof, evAgentUpdateData.elite, evAgentUpdateData.team, evAgentUpdateData.subgroup
+	).c_str());*/
+	
+	if (!evAgentUpdateData.added)
+	{
+		APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_UPDATE", &evAgentUpdateData);
+		return 0;
+	}
+
+	if (evAgentUpdateData.account == nullptr || evAgentUpdateData.account[0] == '\0' ||
+		evAgentUpdateData.character == nullptr || evAgentUpdateData.character[0] == '\0') return 0;
+	
+	if (!evAgentUpdateData.self) {
+		APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_UPDATE", &evAgentUpdateData);
+		return 0;
+	}
+
+	{
+		std::scoped_lock lck(Mutex);
+		evSelfAgentData = evAgentUpdateData;
+		strcpy_s(evSelfAgentData.account, evAgentUpdateData.account);
+		strcpy_s(evSelfAgentData.character, evAgentUpdateData.character);
+		APIDefs->RaiseEvent("EV_ARCDPS_SELF_UPDATE", (void*)&evSelfAgentData);
+	}
+	
 	return 0;
 }
 
