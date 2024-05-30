@@ -4,6 +4,7 @@
 #include <mutex>
 #include <thread>
 #include <format>
+#include <vector>
 
 #include "nexus/Nexus.h"
 #include "ArcDPS.h"
@@ -56,6 +57,8 @@ AddonAPI* APIDefs = nullptr;
 
 std::mutex Mutex;
 EvAgentUpdate self;
+EvAgentUpdate lastTarget;
+std::vector<EvAgentUpdate> squad;
 
 arcdps_exports arc_exports = {};
 uint32_t cbtcount = 0;
@@ -89,19 +92,41 @@ void SelfRequestHandler(void* eventArgs) {
 	std::scoped_lock lck(Mutex);
 	if (self.id == NULL) return;
 	std::thread([&]() {
-		APIDefs->RaiseEvent("EV_ARCDPS_SELF_DETECT", (void*)&self);
+		APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&self);
 	}).detach();
+}
+
+void SquadRequestHandler(void* eventArgs) {
+	std::scoped_lock lck(Mutex);
+	if (!squad.size()) return;
+	std::thread([&]() {
+		for (EvAgentUpdate &member : squad) {
+			APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_JOIN", (void*)&member);
+		}
+		}).detach();
+}
+
+void TargetRequestHandler(void* eventArgs) {
+	std::scoped_lock lck(Mutex);
+	if (lastTarget.id == NULL) return;
+	std::thread([&]() {
+		APIDefs->RaiseEvent("EV_ARCDPS_TARGET_CHANGED", (void*)&lastTarget);
+		}).detach();
 }
 
 void AddonLoad(AddonAPI* aApi)
 {
 	APIDefs = aApi;
-	APIDefs->SubscribeEvent("EV_ARCDPS_SELF_REQUEST", SelfRequestHandler);
+	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_SELF_JOIN", SelfRequestHandler);
+	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_SQUAD_JOIN", SquadRequestHandler);
+	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_TARGET_CHANGED", TargetRequestHandler);
 }
 
 void AddonUnload()
 {
-	APIDefs->UnsubscribeEvent("EV_ARCDPS_SELF_REQUEST", SelfRequestHandler);
+	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_SELF_JOIN", SelfRequestHandler);
+	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_SQUAD_JOIN", SquadRequestHandler);
+	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_TARGET_CHANGED", TargetRequestHandler);
 	return;
 }
 
@@ -157,6 +182,8 @@ void mod_agent_update(EvCombatData* evCbtData) {
 	}
 
 	if (evAgentUpdate.target) {
+		std::scoped_lock lck(Mutex);
+		lastTarget = evAgentUpdate;
 		APIDefs->RaiseEvent("EV_ARCDPS_TARGET_CHANGED", &evAgentUpdate);
 		return;
 	}
@@ -171,15 +198,26 @@ void mod_agent_update(EvCombatData* evCbtData) {
 	{
 		std::scoped_lock lck(Mutex);
 		if (self.id != 0 && self.id == evAgentUpdate.id) {
-			// override values to make life easier
 			strcpy_s(evAgentUpdate.account, self.account);
 			strcpy_s(evAgentUpdate.character, self.character);
 			evAgentUpdate.self = 1;
+			squad.clear();
 			APIDefs->RaiseEvent("EV_ARCDPS_SELF_LEAVE", &evAgentUpdate);
 		}
 		else {
-			// TODO: cache them all and add names to each leave event
-			APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_LEAVE", &evAgentUpdate);
+			squad.erase(std::remove_if(
+				squad.begin(), squad.end(),
+				[&](EvAgentUpdate const &member) {
+					if (member.id == evAgentUpdate.id) {
+						strcpy_s(evAgentUpdate.account, member.account);
+						strcpy_s(evAgentUpdate.character, member.character);
+						APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_LEAVE", &evAgentUpdate);
+						return true;
+					}
+					return false;
+				}),
+				squad.end()
+			);
 		}
 		return;
 	}
@@ -187,24 +225,16 @@ void mod_agent_update(EvCombatData* evCbtData) {
 	if (evAgentUpdate.account == 0 || evAgentUpdate.character == 0) return;
 
 	if (!evAgentUpdate.self) {
+		std::scoped_lock lck(Mutex);
+		squad.push_back(evAgentUpdate);
 		APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_JOIN", &evAgentUpdate);
 		return;
 	}
 
 	{
 		std::scoped_lock lck(Mutex);
-		self.id = evAgentUpdate.id;
-		self.instanceId = evAgentUpdate.instanceId;
-		self.added = evAgentUpdate.added;
-		self.target = evAgentUpdate.target;
-		self.self = evAgentUpdate.self;
-		self.prof = evAgentUpdate.prof;
-		self.elite = evAgentUpdate.elite;
-		self.team = evAgentUpdate.team;
-		self.subgroup = evAgentUpdate.subgroup;
-		strcpy_s(self.account, evAgentUpdate.account);
-		strcpy_s(self.character, evAgentUpdate.character);
-		APIDefs->RaiseEvent("EV_ARCDPS_SELF_DETECT", (void*)&self);
+		self = evAgentUpdate;
+		APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&self);
 	}
 }
 
