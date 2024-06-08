@@ -35,17 +35,23 @@ struct EvCombatData
 
 struct EvAgentUpdate				// when ev is null
 {
-	char account[64] = "";			// dst->name	= account name
-	char character[64] = "";		// src->name	= character name
-	uintptr_t id = 0;				// src->id		= agent id
-	uintptr_t instanceId = 0;		// dst->id		= instance id (per map)
-	uint32_t added = 0;				// src->prof	= is new agent
-	uint32_t target = 0;			// src->elite	= is new targeted agent
-	uint32_t self = 0;				// dst->self	= is self
-	uint32_t prof = 0;				// dst->prof	= profession / core spec
-	uint32_t elite = 0;				// dst->elite	= elite spec
-	uint16_t team = 0ui16;			// src->team	= team
-	uint16_t subgroup = 0ui16;		// dst->team	= subgroup
+	char account[64];		// dst->name	= account name
+	char character[64];		// src->name	= character name
+	uintptr_t id;			// src->id		= agent id
+	uintptr_t instanceId;	// dst->id		= instance id (per map)
+	uint32_t added;			// src->prof	= is new agent
+	uint32_t target;		// src->elite	= is new targeted agent
+	uint32_t Self;			// dst->Self	= is Self
+	uint32_t prof;			// dst->prof	= profession / core spec
+	uint32_t elite;			// dst->elite	= elite spec
+	uint16_t team;			// src->team	= team
+	uint16_t subgroup;		// dst->team	= subgroup
+};
+
+struct SquadUpdate_t
+{
+	UserInfo* UserInfo;
+	uint64_t UsersCount;
 };
 
 /* proto / globals */
@@ -56,19 +62,19 @@ AddonDefinition AddonDef = {};
 AddonAPI* APIDefs = nullptr;
 
 std::mutex Mutex;
-EvAgentUpdate self;
-EvAgentUpdate lastTarget;
-std::vector<EvAgentUpdate> squad;
+std::string AccountName;
+EvAgentUpdate Self;
+EvAgentUpdate LastTarget;
+std::vector<EvAgentUpdate> Squad;
 
 arcdps_exports arc_exports = {};
-uint32_t cbtcount = 0;
 extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, void* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion);
 extern "C" __declspec(dllexport) void* get_release_addr();
-arcdps_exports* mod_init();
-uintptr_t mod_release();
-uintptr_t mod_combat_squad(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision);
-uintptr_t mod_combat_local(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision);
-uintptr_t mod_combat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision);
+arcdps_exports* ArcdpsInit();
+uintptr_t ArcdpsRelease();
+uintptr_t ArcdpsCombatSquad(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision);
+uintptr_t ArcdpsCombatLocal(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision);
+uintptr_t ArcdpsCombat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision);
 
 extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef()
 {
@@ -88,127 +94,161 @@ extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef()
 	return &AddonDef;
 }
 
-void SelfRequestHandler(void* eventArgs) {
+void OnAccountNameRequest(void* eventArgs)
+{
 	std::scoped_lock lck(Mutex);
-	if (self.id == NULL) return;
-	std::thread([&]() {
-		APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&self);
-	}).detach();
-}
 
-void SquadRequestHandler(void* eventArgs) {
-	std::scoped_lock lck(Mutex);
-	if (!squad.size()) return;
-	std::thread([&]() {
-		for (EvAgentUpdate &member : squad) {
-			APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_JOIN", (void*)&member);
-		}
+	if (AccountName.empty()) { return; }
+
+	std::thread([]()
+		{
+			APIDefs->RaiseEvent("EV_ACCOUNT_NAME", (void*)AccountName.c_str());
 		}).detach();
 }
 
-void TargetRequestHandler(void* eventArgs) {
+void OnSelfRequest(void* eventArgs)
+{
 	std::scoped_lock lck(Mutex);
-	if (lastTarget.id == NULL) return;
-	std::thread([&]() {
-		APIDefs->RaiseEvent("EV_ARCDPS_TARGET_CHANGED", (void*)&lastTarget);
+
+	if (Self.id == 0) { return; }
+
+	std::thread([]()
+		{
+			APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&Self);
+		}).detach();
+}
+
+void OnSquadRequest(void* eventArgs)
+{
+	std::scoped_lock lck(Mutex);
+
+	if (Squad.size() == 0) { return; }
+
+	std::thread([]()
+		{
+			for (EvAgentUpdate& member : Squad)
+			{
+				APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_JOIN", (void*)&member);
+			}
+		}).detach();
+}
+
+void OnTargetRequest(void* eventArgs)
+{
+	std::scoped_lock lck(Mutex);
+	if (LastTarget.id == NULL) return;
+	std::thread([]()
+		{
+			APIDefs->RaiseEvent("EV_ARCDPS_TARGET_CHANGED", (void*)&LastTarget);
 		}).detach();
 }
 
 void AddonLoad(AddonAPI* aApi)
 {
 	APIDefs = aApi;
-	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_SELF_JOIN", SelfRequestHandler);
-	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_SQUAD_JOIN", SquadRequestHandler);
-	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_TARGET_CHANGED", TargetRequestHandler);
+	APIDefs->SubscribeEvent("EV_REQUEST_ACCOUNT_NAME", OnAccountNameRequest);
+	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_SELF_JOIN", OnSelfRequest);
+	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_SQUAD_JOIN", OnSquadRequest);
+	APIDefs->SubscribeEvent("EV_REPLAY_ARCDPS_TARGET_CHANGED", OnTargetRequest);
 }
 
 void AddonUnload()
 {
-	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_SELF_JOIN", SelfRequestHandler);
-	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_SQUAD_JOIN", SquadRequestHandler);
-	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_TARGET_CHANGED", TargetRequestHandler);
+	APIDefs->UnsubscribeEvent("EV_REQUEST_ACCOUNT_NAME", OnAccountNameRequest);
+	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_SELF_JOIN", OnSelfRequest);
+	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_SQUAD_JOIN", OnSquadRequest);
+	APIDefs->UnsubscribeEvent("EV_REPLAY_ARCDPS_TARGET_CHANGED", OnTargetRequest);
 	return;
 }
 
 extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, void* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion)
 {
-	return mod_init;
+	return ArcdpsInit;
 }
 
 extern "C" __declspec(dllexport) void* get_release_addr()
 {
-	return mod_release;
+	return ArcdpsRelease;
 }
 
-arcdps_exports* mod_init()
+arcdps_exports* ArcdpsInit()
 {
 	arc_exports.sig = -19392669;
 	arc_exports.imguivers = 18000;
 	arc_exports.size = sizeof(arcdps_exports);
 	arc_exports.out_name = "Nexus ArcDPS Bridge";
 	arc_exports.out_build = __DATE__ " " __TIME__;
-	arc_exports.combat = mod_combat_squad;
-	arc_exports.combat_local = mod_combat_local;
+	arc_exports.combat = ArcdpsCombatSquad;
+	arc_exports.combat_local = ArcdpsCombatLocal;
 
 	return &arc_exports;
 }
 
-uintptr_t mod_release()
+uintptr_t ArcdpsRelease()
 {
 	return 0;
 }
 
-void mod_agent_update(EvCombatData* evCbtData) {
-	if (evCbtData->ev) return;
+void AgentUpdate(EvCombatData* evCbtData)
+{
+	if (evCbtData->ev) { return; }
 
-	EvAgentUpdate evAgentUpdate{
+	EvAgentUpdate evAgentUpdate
+	{
 			"",
 			"",
-			evCbtData->src != nullptr ? evCbtData->src->id : 0,
-			evCbtData->dst != nullptr ? evCbtData->dst->id : 0,
-			evCbtData->src != nullptr ? evCbtData->src->prof : 0,
-			evCbtData->src != nullptr ? evCbtData->src->elite : 0,
-			evCbtData->dst != nullptr ? evCbtData->dst->self : 0,
-			evCbtData->dst != nullptr ? evCbtData->dst->prof : 0,
-			evCbtData->dst != nullptr ? evCbtData->dst->elite : 0,
-			evCbtData->src != nullptr ? evCbtData->src->team : 0ui16,
-			evCbtData->dst != nullptr ? evCbtData->dst->team : 0ui16,
+			evCbtData->src ? evCbtData->src->id		: 0,
+			evCbtData->dst ? evCbtData->dst->id		: 0,
+			evCbtData->src ? evCbtData->src->prof	: 0,
+			evCbtData->src ? evCbtData->src->elite	: 0,
+			evCbtData->dst ? evCbtData->dst->self	: 0,
+			evCbtData->dst ? evCbtData->dst->prof	: 0,
+			evCbtData->dst ? evCbtData->dst->elite	: 0,
+			evCbtData->src ? evCbtData->src->team	: 0,
+			evCbtData->dst ? evCbtData->dst->team	: 0,
 	};
-	if (evCbtData->dst != nullptr && evCbtData->dst->name != nullptr && evCbtData->dst->name[0] != '\0') {
+	if (evCbtData->dst && evCbtData->dst->name && evCbtData->dst->name[0] != '\0')
+	{
 		strcpy_s(evAgentUpdate.account, evCbtData->dst->name);
 	}
-	if (evCbtData->src != nullptr && evCbtData->src->name != nullptr && evCbtData->src->name[0] != '\0') {
+	if (evCbtData->src && evCbtData->src->name && evCbtData->src->name[0] != '\0')
+	{
 		strcpy_s(evAgentUpdate.character, evCbtData->src->name);
 	}
 
-	if (evAgentUpdate.target) {
+	if (evAgentUpdate.target)
+	{
 		std::scoped_lock lck(Mutex);
-		lastTarget = evAgentUpdate;
+		LastTarget = evAgentUpdate;
 		APIDefs->RaiseEvent("EV_ARCDPS_TARGET_CHANGED", &evAgentUpdate);
 		return;
 	}
 
 	/*APIDefs->Log(ELogLevel_DEBUG, "Nexus Arcdps Bridge", std::format(
-		"new agent event with id: {}, instanceId: {}, account: {}, added: {}, target: {}, self: {}, prof: {}, elite: {}, team: {}, subgroup: {}",
+		"new agent event with id: {}, instanceId: {}, account: {}, added: {}, target: {}, Self: {}, prof: {}, elite: {}, team: {}, subgroup: {}",
 		evAgentUpdate.id, evAgentUpdate.instanceId, evAgentUpdate.account, evAgentUpdate.added, evAgentUpdate.target,
-		evAgentUpdate.self, evAgentUpdate.prof, evAgentUpdate.elite, evAgentUpdate.team, evAgentUpdate.subgroup
+		evAgentUpdate.Self, evAgentUpdate.prof, evAgentUpdate.elite, evAgentUpdate.team, evAgentUpdate.subgroup
 	).c_str());*/
 
 	if (!evAgentUpdate.added)
 	{
 		std::scoped_lock lck(Mutex);
-		if (self.id != 0 && self.id == evAgentUpdate.id) {
-			strcpy_s(evAgentUpdate.account, self.account);
-			strcpy_s(evAgentUpdate.character, self.character);
-			evAgentUpdate.self = 1;
-			squad.clear();
+		if (Self.id != 0 && Self.id == evAgentUpdate.id)
+		{
+			strcpy_s(evAgentUpdate.account, Self.account);
+			strcpy_s(evAgentUpdate.character, Self.character);
+			evAgentUpdate.Self = 1;
+			Squad.clear();
 			APIDefs->RaiseEvent("EV_ARCDPS_SELF_LEAVE", &evAgentUpdate);
 		}
-		else {
-			squad.erase(std::remove_if(
-				squad.begin(), squad.end(),
-				[&](EvAgentUpdate const &member) {
-					if (member.id == evAgentUpdate.id) {
+		else
+		{
+			Squad.erase(std::remove_if(
+				Squad.begin(), Squad.end(),
+				[&](EvAgentUpdate const &member)
+				{
+					if (member.id == evAgentUpdate.id)
+					{
 						strcpy_s(evAgentUpdate.account, member.account);
 						strcpy_s(evAgentUpdate.character, member.character);
 						APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_LEAVE", &evAgentUpdate);
@@ -216,41 +256,43 @@ void mod_agent_update(EvCombatData* evCbtData) {
 					}
 					return false;
 				}),
-				squad.end()
+				Squad.end()
 			);
 		}
 		return;
 	}
 
-	if (evAgentUpdate.account == 0 || evAgentUpdate.character == 0) return;
+	if (evAgentUpdate.account == 0 || evAgentUpdate.character == 0) { return; }
 
-	if (!evAgentUpdate.self) {
+	if (!evAgentUpdate.Self)
+	{
 		std::scoped_lock lck(Mutex);
-		squad.push_back(evAgentUpdate);
+		Squad.push_back(evAgentUpdate);
 		APIDefs->RaiseEvent("EV_ARCDPS_SQUAD_JOIN", &evAgentUpdate);
 		return;
 	}
 
 	{
 		std::scoped_lock lck(Mutex);
-		self = evAgentUpdate;
-		APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&self);
+		Self = evAgentUpdate;
+		APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&Self);
 	}
 }
 
-uintptr_t mod_combat_squad(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
+uintptr_t ArcdpsCombatSquad(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
 {
-	return mod_combat("squad", ev, src, dst, skillname, id, revision);
+	return ArcdpsCombat("squad", ev, src, dst, skillname, id, revision);
 }
 
-uintptr_t mod_combat_local(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
+uintptr_t ArcdpsCombatLocal(cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
 {
-	return mod_combat("local", ev, src, dst, skillname, id, revision);
+	return ArcdpsCombat("local", ev, src, dst, skillname, id, revision);
 }
 
-uintptr_t mod_combat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
+uintptr_t ArcdpsCombat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* skillname, uint64_t id, uint64_t revision)
 {
-	if (APIDefs == nullptr) return 0;
+	if (APIDefs == nullptr) { return 0; }
+
 	EvCombatData evCbtData
 	{
 		ev,
@@ -270,16 +312,10 @@ uintptr_t mod_combat(const char* channel, cbtevent* ev, ag* src, ag* dst, char* 
 		APIDefs->RaiseEvent("EV_ARCDPS_COMBATEVENT_LOCAL_RAW", &evCbtData);
 	}
 
-	mod_agent_update(&evCbtData);
+	AgentUpdate(&evCbtData);
 	
 	return 0;
 }
-
-struct SquadUpdate_t
-{
-	UserInfo* UserInfo;
-	uint64_t UsersCount;
-};
 
 void SquadUpdate(const UserInfo* pUpdatedUsers, uint64_t pUpdatedUsersCount)
 {
@@ -310,12 +346,13 @@ extern "C" __declspec(dllexport) void arcdps_unofficial_extras_subscriber_init(c
 	// MaxInfoVersion has to be higher to have enough space to hold this object
 	if (pExtrasInfo->ApiVersion == 2 && pExtrasInfo->MaxInfoVersion >= 2)
 	{
-		const auto subscriber_info = static_cast<ExtrasSubscriberInfoV2*>(pSubscriberInfo);
-		subscriber_info->InfoVersion = 2;
-		subscriber_info->SubscriberName = "Nexus ArcDPS Bridge";
-		subscriber_info->SquadUpdateCallback = SquadUpdate;
-		subscriber_info->LanguageChangedCallback = LanguageChanged;
-		subscriber_info->KeyBindChangedCallback = KeyBindChanged;
-		subscriber_info->ChatMessageCallback = ChatMessage;
+		AccountName = pExtrasInfo->SelfAccountName;
+		ExtrasSubscriberInfoV2* subInfo = (ExtrasSubscriberInfoV2*)(pSubscriberInfo);
+		subInfo->InfoVersion = 2;
+		subInfo->SubscriberName = "Nexus ArcDPS Bridge";
+		subInfo->SquadUpdateCallback = SquadUpdate;
+		subInfo->LanguageChangedCallback = LanguageChanged;
+		subInfo->KeyBindChangedCallback = KeyBindChanged;
+		subInfo->ChatMessageCallback = ChatMessage;
 	}
 }
