@@ -276,6 +276,10 @@ void AgentUpdate(EvCombatData* evCbtData)
 		std::scoped_lock lck(Mutex);
 		Self = evAgentUpdate;
 		APIDefs->RaiseEvent("EV_ARCDPS_SELF_JOIN", (void*)&Self);
+		if (AccountName.empty()) {
+			AccountName = Self.account;
+			APIDefs->RaiseEvent("EV_ACCOUNT_NAME", (void*)AccountName.c_str());
+		}
 	}
 }
 
