@@ -350,7 +350,10 @@ extern "C" __declspec(dllexport) void arcdps_unofficial_extras_subscriber_init(c
 	// MaxInfoVersion has to be higher to have enough space to hold this object
 	if (pExtrasInfo->ApiVersion == 2 && pExtrasInfo->MaxInfoVersion >= 2)
 	{
-		AccountName = pExtrasInfo->SelfAccountName;
+		if (AccountName.empty()) {
+			AccountName = pExtrasInfo->SelfAccountName;
+			APIDefs->RaiseEvent("EV_ACCOUNT_NAME", (void*)AccountName.c_str());
+		}
 		ExtrasSubscriberInfoV2* subInfo = (ExtrasSubscriberInfoV2*)(pSubscriberInfo);
 		subInfo->InfoVersion = 2;
 		subInfo->SubscriberName = "Nexus ArcDPS Bridge";
