@@ -105,7 +105,7 @@
     <ClCompile Include="src\unofficial_extras\KeyBindsTranslation.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ArcDPS.h" />
+    <ClInclude Include="src\arcdps\ArcDPS.h" />
     <ClInclude Include="src\nexus\Nexus.h" />
     <ClInclude Include="src\unofficial_extras\Definitions.h" />
     <ClInclude Include="src\unofficial_extras\KeyBindHelper.h" />

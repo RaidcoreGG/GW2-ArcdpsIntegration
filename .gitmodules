@@ -6,4 +6,4 @@
 	url = https://github.com/Krappa322/arcdps_unofficial_extras_releases
 [submodule "src/arcdps"]
 	path = src/arcdps
-	url = https://github.com/RaidcoreGG/RCGG-lib-arcdps-api.git
+	url = https://github.com/RaidcoreGG/RCGG-lib-arcdps-api
