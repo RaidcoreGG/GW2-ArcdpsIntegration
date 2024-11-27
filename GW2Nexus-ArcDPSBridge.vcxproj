@@ -71,8 +71,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>CALL $(SolutionDir)Scripts\version.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -97,22 +96,31 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>CALL $(SolutionDir)Scripts\version.bat</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\ArcEvents.cpp" />
+    <ClCompile Include="src\ExtEvents.cpp" />
     <ClCompile Include="src\entry.cpp" />
+    <ClCompile Include="src\Globals.cpp" />
+    <ClCompile Include="src\UeEvents.cpp" />
     <ClCompile Include="src\unofficial_extras\KeyBindHelper.cpp" />
     <ClCompile Include="src\unofficial_extras\KeyBindsTranslation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\arcdps\ArcDPS.h" />
+    <ClInclude Include="src\ArcEvents.h" />
+    <ClInclude Include="src\entry.h" />
+    <ClInclude Include="src\ExtEvents.h" />
+    <ClInclude Include="src\Globals.h" />
     <ClInclude Include="src\nexus\Nexus.h" />
+    <ClInclude Include="src\UeEvents.h" />
     <ClInclude Include="src\unofficial_extras\Definitions.h" />
     <ClInclude Include="src\unofficial_extras\KeyBindHelper.h" />
     <ClInclude Include="src\unofficial_extras\KeyBindsTranslation.h" />
     <ClInclude Include="src\unofficial_extras\KeyBindStructs.h" />
+    <ClInclude Include="src\Version.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -7,3 +7,6 @@
 [submodule "src/arcdps"]
 	path = src/arcdps
 	url = https://github.com/RaidcoreGG/RCGG-lib-arcdps-api
+[submodule "Scripts"]
+	path = Scripts
+	url = https://github.com/RaidcoreGG/RCGG-Scripts
