@@ -29,9 +29,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ArcDPS.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\nexus\Nexus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -46,6 +43,9 @@
     </ClInclude>
     <ClInclude Include="src\unofficial_extras\Definitions.h">
       <Filter>unofficial_extras</Filter>
+    </ClInclude>
+    <ClInclude Include="src\arcdps\ArcDPS.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
