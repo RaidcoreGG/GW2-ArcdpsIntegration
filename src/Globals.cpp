@@ -13,6 +13,7 @@ namespace G
 	AddonAPI*       APIDefs    = nullptr;
 
 	ArcDPS::Exports ArcExports = {};
+	ArcDPS::Options ArcOptions = {};
 
 	std::string     AccountName;
 }
