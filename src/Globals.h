@@ -12,6 +12,7 @@
 
 #include "nexus/Nexus.h"
 #include "arcdps/ArcDPS.h"
+#include "ArcOptions.hpp"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -23,10 +24,12 @@
 ///----------------------------------------------------------------------------------------------------
 namespace G
 {
+	extern HMODULE LibHandle;
 	extern AddonDefinition AddonDef;
 	extern AddonAPI*       APIDefs;
 
 	extern ArcDPS::Exports ArcExports;
+	extern ArcDPS::Options ArcOptions;
 
 	extern std::string     AccountName;
 }

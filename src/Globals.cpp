@@ -9,10 +9,12 @@
 
 namespace G
 {
+	HMODULE         LibHandle  = nullptr;
 	AddonDefinition AddonDef   = {};
 	AddonAPI*       APIDefs    = nullptr;
 
 	ArcDPS::Exports ArcExports = {};
+	ArcDPS::Options ArcOptions = {};
 
 	std::string     AccountName;
 }
