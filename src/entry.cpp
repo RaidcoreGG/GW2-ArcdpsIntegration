@@ -98,6 +98,10 @@ void AddonLoad(AddonAPI* aApi)
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS, RES_ICON_ARCDPS, G::LibHandle);
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS_HOVER, RES_ICON_ARCDPS_HOVER, G::LibHandle);
 	G::APIDefs->QuickAccess.Add(ADDON_NAME, ICON_ARCDPS, ICON_ARCDPS_HOVER, KB_ARCDPS_OPTIONS, "ArcDPS Options");
+	G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "en", "Toggle ArcDPS Options");
+	G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "de", "ArcDPS Optionen umschalten");
+	//G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "es", "Toggle ArcDPS Options");
+	//G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "fr", "Toggle ArcDPS Options");
 }
 
 void AddonUnload()
