@@ -24,6 +24,7 @@
 ///----------------------------------------------------------------------------------------------------
 namespace G
 {
+	extern HMODULE LibHandle;
 	extern AddonDefinition AddonDef;
 	extern AddonAPI*       APIDefs;
 

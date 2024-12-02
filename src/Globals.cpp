@@ -9,6 +9,7 @@
 
 namespace G
 {
+	HMODULE         LibHandle  = nullptr;
 	AddonDefinition AddonDef   = {};
 	AddonAPI*       APIDefs    = nullptr;
 

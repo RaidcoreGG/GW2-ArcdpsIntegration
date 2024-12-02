@@ -47,5 +47,21 @@
     <ClInclude Include="src\arcdps\ArcDPS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\GW2Nexus-ArcDPSBridge.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="src\Resources\icon_arcdps.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="src\Resources\icon_arcdps_hover.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
