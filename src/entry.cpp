@@ -18,6 +18,7 @@
 constexpr const char* KB_ARCDPS_OPTIONS   = "KB_ARCDPS_OPTIONS";
 constexpr const char* ICON_ARCDPS         = "ICON_ARCDPS";
 constexpr const char* ICON_ARCDPS_HOVER   = "ICON_ARCDPS_HOVER";
+constexpr const char* QA_ARCDPS           = "QA_ARCDPS";
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -97,7 +98,7 @@ void AddonLoad(AddonAPI* aApi)
 	G::APIDefs->InputBinds.RegisterWithStruct(KB_ARCDPS_OPTIONS, ToggleArcDPSOptions, GetArcDPSKeybind());
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS, RES_ICON_ARCDPS, G::LibHandle);
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS_HOVER, RES_ICON_ARCDPS_HOVER, G::LibHandle);
-	G::APIDefs->QuickAccess.Add(ADDON_NAME, ICON_ARCDPS, ICON_ARCDPS_HOVER, KB_ARCDPS_OPTIONS, "ArcDPS Options");
+	G::APIDefs->QuickAccess.Add(QA_ARCDPS, ICON_ARCDPS, ICON_ARCDPS_HOVER, KB_ARCDPS_OPTIONS, "ArcDPS Options");
 	G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "en", "Toggle ArcDPS Options");
 	G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "de", "ArcDPS Optionen umschalten");
 	//G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "es", "Toggle ArcDPS Options");
@@ -111,7 +112,7 @@ void AddonUnload()
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_SQUAD_JOIN,     Ext::OnSquadRequest);
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_TARGET_CHANGED, Ext::OnTargetRequest);
 	G::APIDefs->InputBinds.Deregister(KB_ARCDPS_OPTIONS);
-	G::APIDefs->QuickAccess.Remove(ADDON_NAME);
+	G::APIDefs->QuickAccess.Remove(QA_ARCDPS);
 }
 
 extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, void* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion)
