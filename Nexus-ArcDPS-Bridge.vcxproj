@@ -111,6 +111,7 @@
   <ItemGroup>
     <ClInclude Include="src\arcdps\ArcDPS.h" />
     <ClInclude Include="src\ArcEvents.h" />
+    <ClInclude Include="src\ArcOptions.hpp" />
     <ClInclude Include="src\entry.h" />
     <ClInclude Include="src\ExtEvents.h" />
     <ClInclude Include="src\Globals.h" />
