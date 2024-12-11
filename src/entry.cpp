@@ -55,9 +55,11 @@ extern "C" __declspec(dllexport) AddonDefinition* GetAddonDef()
 Keybind GetArcDPSKeybind()
 {
 	const auto arcIniPath = std::filesystem::path(G::APIDefs->Paths.GetAddonDirectory("arcdps")) / "arcdps.ini";
+
 	G::ArcOptions.global_mod1 = GetPrivateProfileIntA("keys", "global_mod1", VK_SHIFT, arcIniPath.string().c_str());
 	G::ArcOptions.global_mod2 = GetPrivateProfileIntA("keys", "global_mod2", VK_MENU, arcIniPath.string().c_str());
 	G::ArcOptions.global_options = GetPrivateProfileIntA("keys", "global_options", 'T', arcIniPath.string().c_str());
+
 	return Keybind{
 		.Key = static_cast<unsigned short>(MapVirtualKeyA(G::ArcOptions.global_options, MAPVK_VK_TO_VSC)),
 		.Alt = G::ArcOptions.global_mod1 == VK_MENU || G::ArcOptions.global_mod2 == VK_MENU,
@@ -69,11 +71,14 @@ Keybind GetArcDPSKeybind()
 void ToggleArcDPSOptions(const char*, bool)
 {
 	G::APIDefs->Log(ELogLevel_DEBUG, ADDON_NAME, "ToggleArcDPSOptions invoked");
+
 	constexpr auto inputCount = 3;
 	INPUT inputs[inputCount] = {};
 	memset(inputs, 0, sizeof(inputs));
-	for(auto i = 0; i < inputCount; i++)
+	for (auto i = 0; i < inputCount; i++)
+	{
 		inputs[i].type = INPUT_KEYBOARD;
+	}
 
 	inputs[0].ki.wVk = G::ArcOptions.global_mod1;
 	inputs[1].ki.wVk = G::ArcOptions.global_mod2;
@@ -81,8 +86,10 @@ void ToggleArcDPSOptions(const char*, bool)
 
 	SendInput(inputCount, inputs, sizeof(INPUT));
 
-	for(auto i = 0; i < 3; i++)
+	for (auto i = 0; i < 3; i++)
+	{
 		inputs[i].ki.dwFlags = KEYEVENTF_KEYUP;
+	}
 
 	SendInput(inputCount, inputs, sizeof(INPUT));
 }
@@ -95,7 +102,7 @@ void AddonLoad(AddonAPI* aApi)
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_SELF_JOIN,      Ext::OnSelfRequest);
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_SQUAD_JOIN,     Ext::OnSquadRequest);
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_TARGET_CHANGED, Ext::OnTargetRequest);
-	G::APIDefs->InputBinds.RegisterWithStruct(KB_ARCDPS_OPTIONS, ToggleArcDPSOptions, GetArcDPSKeybind());
+	//G::APIDefs->InputBinds.RegisterWithString(KB_ARCDPS_OPTIONS, ToggleArcDPSOptions, "(null)");
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS, RES_ICON_ARCDPS, G::LibHandle);
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS_HOVER, RES_ICON_ARCDPS_HOVER, G::LibHandle);
 	G::APIDefs->QuickAccess.Add(QA_ARCDPS, ICON_ARCDPS, ICON_ARCDPS_HOVER, KB_ARCDPS_OPTIONS, "ArcDPS Options");
@@ -111,7 +118,7 @@ void AddonUnload()
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_SELF_JOIN,      Ext::OnSelfRequest);
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_SQUAD_JOIN,     Ext::OnSquadRequest);
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_TARGET_CHANGED, Ext::OnTargetRequest);
-	G::APIDefs->InputBinds.Deregister(KB_ARCDPS_OPTIONS);
+	//G::APIDefs->InputBinds.Deregister(KB_ARCDPS_OPTIONS);
 	G::APIDefs->QuickAccess.Remove(QA_ARCDPS);
 }
 
