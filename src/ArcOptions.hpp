@@ -4,8 +4,8 @@ namespace ArcDPS
 {
     struct Options
     {
-        unsigned int global_mod1;
-        unsigned int global_mod2;
-        unsigned int global_options;
+        unsigned short global_mod1;
+        unsigned short global_mod2;
+        unsigned short global_options;
     };
 }
