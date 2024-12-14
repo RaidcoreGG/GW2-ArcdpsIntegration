@@ -61,24 +61,24 @@ void LoadArcDPSSettings()
 	G::ArcOptions.global_options = static_cast<unsigned short>(GetPrivateProfileIntA("keys", "global_options", 'T', arcIniPath.string().c_str()));
 }
 
-bool IsLegalNexusModifier(unsigned int vk)
+bool IsLegalModifier(unsigned int vk)
 {
 	return vk == VK_MENU || vk == VK_CONTROL || vk == VK_SHIFT || vk == 0;
 }
 
 Keybind GetArcDPSKeybind()
 {
-	if (G::ArcOptions.global_options && IsLegalNexusModifier(G::ArcOptions.global_options))
+	if (G::ArcOptions.global_options && IsLegalModifier(G::ArcOptions.global_options))
 	{
 		G::APIDefs->Log(ELogLevel_WARNING, ADDON_NAME, "ArcDPS configured to use unsupported toggle options key");
 		return {};
 	}
-	if (!IsLegalNexusModifier(G::ArcOptions.global_mod1))
+	if (!IsLegalModifier(G::ArcOptions.global_mod1))
 	{
 		G::APIDefs->Log(ELogLevel_WARNING, ADDON_NAME, "ArcDPS configured to use unsupported global_mod1 key");
 		return {};
 	}
-	if (!IsLegalNexusModifier(G::ArcOptions.global_mod2))
+	if (!IsLegalModifier(G::ArcOptions.global_mod2))
 	{
 		G::APIDefs->Log(ELogLevel_WARNING, ADDON_NAME, "ArcDPS configured to use unsupported global_mod2 key");
 		return {};
@@ -91,8 +91,10 @@ Keybind GetArcDPSKeybind()
 	};
 }
 
-void ToggleArcDPSOptions(const char*, bool)
+void ToggleArcDPSOptions(const char* aIdentifier, bool aIsRelease)
 {
+	if (aIsRelease) { return; }
+
 	G::APIDefs->Log(ELogLevel_DEBUG, ADDON_NAME, "ToggleArcDPSOptions invoked");
 
 	std::vector<INPUT> inputs;
@@ -135,7 +137,11 @@ void AddonLoad(AddonAPI* aApi)
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_SQUAD_JOIN,     Ext::OnSquadRequest);
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_TARGET_CHANGED, Ext::OnTargetRequest);
 
-	G::APIDefs->InputBinds.RegisterWithStruct(KB_ARCDPS_OPTIONS, ToggleArcDPSOptions, GetArcDPSKeybind());
+	// no bind set for the arc options relay, because if you use the same keys as arcdps itself uses this will just call itself
+	// either use different keys, to have an alternative bind
+	// or use no bind at all so this can be invoked via QuickAccess or Nexus API IB->Invoke()
+	G::APIDefs->InputBinds.RegisterWithString(KB_ARCDPS_OPTIONS, ToggleArcDPSOptions, "(null)");
+
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS, RES_ICON_ARCDPS, G::LibHandle);
 	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS_HOVER, RES_ICON_ARCDPS_HOVER, G::LibHandle);
 	G::APIDefs->QuickAccess.Add(QA_ARCDPS, ICON_ARCDPS, ICON_ARCDPS_HOVER, KB_ARCDPS_OPTIONS, KB_ARCDPS_OPTIONS);
