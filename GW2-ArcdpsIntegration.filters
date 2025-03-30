@@ -52,7 +52,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="src\Nexus-ArcDPS-Bridge.rc">
+    <ResourceCompile Include="src\GW2-ArcdpsIntegration.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

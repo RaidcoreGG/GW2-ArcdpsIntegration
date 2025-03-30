@@ -17,7 +17,7 @@
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-#define ADDON_NAME "Nexus ArcDPS Bridge"
+#define ADDON_NAME "Arcdps Integration"
 
 ///----------------------------------------------------------------------------------------------------
 /// Global Namespace
