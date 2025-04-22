@@ -136,19 +136,6 @@ void AddonLoad(AddonAPI* aApi)
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_SELF_JOIN,      Ext::OnSelfRequest);
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_SQUAD_JOIN,     Ext::OnSquadRequest);
 	G::APIDefs->Events.Subscribe(EV_REPLAY_ARCDPS_TARGET_CHANGED, Ext::OnTargetRequest);
-
-	// no bind set for the arc options relay, because if you use the same keys as arcdps itself uses this will just call itself
-	// either use different keys, to have an alternative bind
-	// or use no bind at all so this can be invoked via QuickAccess or Nexus API IB->Invoke()
-	G::APIDefs->InputBinds.RegisterWithString(KB_ARCDPS_OPTIONS, ToggleArcDPSOptions, "(null)");
-
-	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS, RES_ICON_ARCDPS, G::LibHandle);
-	G::APIDefs->Textures.GetOrCreateFromResource(ICON_ARCDPS_HOVER, RES_ICON_ARCDPS_HOVER, G::LibHandle);
-	G::APIDefs->QuickAccess.Add(QA_ARCDPS, ICON_ARCDPS, ICON_ARCDPS_HOVER, KB_ARCDPS_OPTIONS, KB_ARCDPS_OPTIONS);
-	G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "en", "Toggle ArcDPS Options");
-	G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "de", "ArcDPS Optionen umschalten");
-	//G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "es", "Toggle ArcDPS Options");
-	//G::APIDefs->Localization.Set(KB_ARCDPS_OPTIONS, "fr", "Toggle ArcDPS Options");
 }
 
 void AddonUnload()
@@ -157,8 +144,6 @@ void AddonUnload()
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_SELF_JOIN,      Ext::OnSelfRequest);
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_SQUAD_JOIN,     Ext::OnSquadRequest);
 	G::APIDefs->Events.Unsubscribe(EV_REPLAY_ARCDPS_TARGET_CHANGED, Ext::OnTargetRequest);
-	G::APIDefs->InputBinds.Deregister(KB_ARCDPS_OPTIONS);
-	G::APIDefs->QuickAccess.Remove(QA_ARCDPS);
 }
 
 extern "C" __declspec(dllexport) void* get_init_addr(char* arcversion, void* imguictx, void* id3dptr, HANDLE arcdll, void* mallocfn, void* freefn, uint32_t d3dversion)
